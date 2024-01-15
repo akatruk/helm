@@ -1,0 +1,12 @@
+apiVersion: v1
+entries:
+  short-application:
+  - apiVersion: v2
+    created: "2024-01-15T18:51:33.814958+07:00"
+    description: A Helm chart for deploying app
+    digest: b408a3d9a99896e1f796458290579c9d7a5f48229cbb57ac2a58ec9e324a797c
+    name: short-application
+    urls:
+    - short-application-0.1.0.tgz
+    version: 0.1.0
+generated: "2024-01-15T18:51:33.814487+07:00"
