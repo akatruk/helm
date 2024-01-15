@@ -1,0 +1,6 @@
+---
+
+  apiVersion: v2
+  name: short-application
+  description: A Helm chart for deploying app
+  version: 0.1.0

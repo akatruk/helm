@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: short-api
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: short-api
+  namespace: short-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: short-api
+  template:
+    metadata:
+      labels:
+        app: short-api
+    spec:
+      containers:
+      - name: short-api
+        image: antonlarichev/short-api:v1.0
+        ports:
+        - containerPort: 3000
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "100m"  
+          requests:
+            memory: "128Mi"
+            cpu: "100m"  
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: short-api
+  namespace: short-api
+spec:
+  selector:
+    app: short-api
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+  type: ClusterIP
+
+---
+

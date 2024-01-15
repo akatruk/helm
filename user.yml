@@ -1,0 +1,10 @@
+SECRET_ACCESS_KEY=$(aws iam create-access-key --user-name "externaldns")
+cat <<-EOF > /Users/akatruk/Documents/workshop/kubernetes/externaldns_user
+
+[default]
+aws_access_key_id = $(echo $SECRET_ACCESS_KEY | jq -r '.AccessKey.AccessKeyId')
+aws_secret_access_key = $(echo $SECRET_ACCESS_KEY | jq -r '.AccessKey.SecretAccessKey')
+EOF
+
+
+aws iam attach-user-policy --user-name "externaldns" --policy-arn

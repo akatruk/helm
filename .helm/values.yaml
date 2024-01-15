@@ -1,0 +1,47 @@
+
+app:
+  name: short-app
+  port: 80
+  host: app.nazi.today
+  replicas: 1
+  containers:
+    image: antonlarichev/short-app:v1.4
+  limits:
+    memory: "256Mi"
+    cpu: "200m"  
+  requests:
+    memory: "128Mi"
+    cpu: "100m"  
+
+api:
+  name: short-api
+  port: 3000
+  replicas: 1
+  containers:
+    image: antonlarichev/short-api:v1.0
+  resources:
+    limits:
+      memory: "128Mi"
+      cpu: "100m"  
+    requests:
+      memory: "128Mi"
+      cpu: "100m"  
+
+
+pg:
+  name: postgres
+  port: 5432
+  replicas: 1
+  containers:
+    image: postgres:15.0
+  resources:
+    limits:
+      memory: "128Mi"
+      cpu: "100m"  
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+  values:
+    password: demo
+    user: "demo"
+    db: demo

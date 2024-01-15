@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.app.name }}
+  namespace: {{ .Values.app.name }}
+spec:
+  replicas: {{ .Values.app.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.app.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app.name }}
+    spec:
+      containers:
+      - name: {{ .Values.app.name }}
+        image: {{ .Values.app.containers.image }}
+        ports:
+        - containerPort: {{ .Values.app.port }}
+        resources:
+          limits: {{ .Values.app.limits | toYaml | nindent 12 }}
+          requests: {{ .Values.app.requests | toYaml | nindent 12 }}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.app.name }}-service
+  namespace: {{ .Values.app.name }}
+spec:
+  selector:
+    app: {{ .Values.app.name }}
+  ports:
+    - protocol: TCP
+      port: {{ .Values.app.port }}
+      targetPort: {{ .Values.app.port }}
+  type: ClusterIP
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.app.name }}-ingress
+  namespace: {{ .Values.app.name }}
+  annotations:
+    nginx.ingress.kubernetes.io/add-base-url: "true"
+spec:
+  rules:
+    - host: {{ .Values.app.host | quote }}
+      http:
+        paths:
+          - path: "/"
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Values.app.name }}-service
+                port:
+                  number: {{ .Values.app.port }}

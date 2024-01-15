@@ -1,0 +1,132 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-html-external-configmap
+  namespace: nginx
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>External Nginx Page</title>
+    </head>
+    <body>
+      <h1>Nazi win!</h1>
+    </body>
+    </html>
+
+---
+
+# nginx-deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  namespace: nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx-container
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-html-external-volume
+              mountPath: /usr/share/nginx/html
+      volumes:
+        - name: nginx-html-external-volume
+          configMap:
+            name: nginx-html-external-configmap
+
+---
+
+# nginx-service.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  namespace: nginx
+spec:
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: NodePort
+
+---
+
+# nginx-ingress.yaml
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-ingress
+  namespace: nginx
+spec:
+  rules:
+    - host: nginx.nazi.today
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nginx-service
+                port:
+                  number: 80
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-ingress-ssl
+  namespace: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  tls:
+  - hosts:
+    - nginx-ssl.nazi.today
+    secretName: my-tls-secret
+  rules:
+  - host: nginx-ssl.nazi.today
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx-service
+            port:
+              number: 80
+
+# ---
+
+# apiVersion: v1
+# items:
+# - apiVersion: v1
+#   data:
+#     tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURsekNDQW4rZ0F3SUJBZ0lVUGgxT2RLNTlDN3pxelRoek9kWjVaKzVUSTJvd0RRWUpLb1pJaHZjTkFRRUwKQlFBd1dqRUxNQWtHQTFVRUJoTUNWVk14RXpBUkJnTlZCQWdNQ2xOdmJXVXRVM1JoZEdVeElUQWZCZ05WQkFvTQpHRWx1ZEdWeWJtVjBJRmRwWkdkcGRITWdVSFI1SUV4MFpERVRNQkVHQTFVRUF3d0tibUY2YVM1MGIyUmhlVEFnCkZ3MHlNekV5TWpZeE1UUTJNakZhR0E4eU1EVXhNRFV4TWpFeE5EWXlNVm93V2pFTE1Ba0dBMVVFQmhNQ1ZWTXgKRXpBUkJnTlZCQWdNQ2xOdmJXVXRVM1JoZEdVeElUQWZCZ05WQkFvTUdFbHVkR1Z5Ym1WMElGZHBaR2RwZEhNZwpVSFI1SUV4MFpERVRNQkVHQTFVRUF3d0tibUY2YVM1MGIyUmhlVENDQVNJd0RRWUpLb1pJaHZjTkFRRUJCUUFECmdnRVBBRENDQVFvQ2dnRUJBS29hNHZxRUdVK0kyZ21YcHp5QTNhMU14MWkzTUFDWnhtUVQyYndadk9lTUhpNUsKZnZqa3pHZkFZMVhGdXFxU2k2MDlTTVEyMThrL2lqWEtCWE91ckRZcDE4MDJZVHdhTnFNSytKUWJtbXJUOGhrYgpYcFlOcU1Ld2pqak5zZVZPekxuRXAwZWZPd0Y0ZXhMa3FwUnVOVEdFM3lvTWhaeG5Ra3hkRkcrcWRsVlpZQ2dKCkk5TW0xc3Fwd3dMR2ZxTzRtcFlLa0JOTzc2TFhSNWJrekxzaEZEYUdJT1RYQVBDbUxiSXlhb1h3SGtVVG1VVWgKWlRTVGY3TTlKZFZIdi9YbzZLck8zOWVwSGNvVDhiaWdDbVVzY1pvMlJGcWsreCs5MVU3UUYrZ25PWmE3Tk1EdgpmRG0zbDZPVGdEU1RpY2ptRDRZSmVrditteGl2QjZSUWVRa3Bybk1DQXdFQUFhTlRNRkV3SFFZRFZSME9CQllFCkZQMVB3UFNURDBhd1A5UDRYSVI3YklVZkxHRS9NQjhHQTFVZEl3UVlNQmFBRlAxUHdQU1REMGF3UDlQNFhJUjcKYklVZkxHRS9NQThHQTFVZEV3RUIvd1FGTUFNQkFmOHdEUVlKS29aSWh2Y05BUUVMQlFBRGdnRUJBSWRoTDJ6QgovRGI3eHRwQ3RvTmVraE8velpSbC9zcWNVQnNuSTVTcE1XSFdsZjJjVHk0VDF6enR0MERKWTNzZUxReG9Lak5tCnU2K3psdmZudHFYQzVURFN2ZGVGNkYyRCtXOHZuaXp5RVJWeGFjeGJ4N29xWXVDQnF0ZmZIS2VNU1J6YnBPUXYKMjFIb0F6aS9LWS9yRDlja3U1M1hHbDBWV0paVDkvTDBIejF3eThxM2tmSTNBUGsyeUZtL3Q3R1VsamI1RTZ3UwpJV0d5RjRuN0ZWOG5ncXBCejJHRjRtUzJicTExQ1FTNmlaWHA1NXVQUENWTC9kUHhKMDUvdkROakRxcXFENFdRCmx5d0FYaEYwMWZ2UWpOaXR2dHErQ1hOaWJjVitRVUpIVk9UdE9va21SM05YVlJBM1J3STVkMy9HT2xwS0V1SEwKb1JQVU5va29RQUtvNVN3PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+#     tls.key: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktjd2dnU2pBZ0VBQW9JQkFRQ3FHdUw2aEJsUGlOb0oKbDZjOGdOMnRUTWRZdHpBQW1jWmtFOW04R2J6bmpCNHVTbjc0NU14bndHTlZ4YnFxa291dFBVakVOdGZKUDRvMQp5Z1Z6cnF3MktkZk5ObUU4R2phakN2aVVHNXBxMC9JWkcxNldEYWpDc0k0NHpiSGxUc3k1eEtkSG56c0JlSHNTCjVLcVVialV4aE44cURJV2NaMEpNWFJSdnFuWlZXV0FvQ1NQVEp0YktxY01DeG42anVKcVdDcEFUVHUraTEwZVcKNU15N0lSUTJoaURrMXdEd3BpMnlNbXFGOEI1RkU1bEZJV1UwazMrelBTWFZSNy8xNk9pcXp0L1hxUjNLRS9HNApvQXBsTEhHYU5rUmFwUHNmdmRWTzBCZm9Kem1XdXpUQTczdzV0NWVqazRBMGs0bkk1ZytHQ1hwTC9wc1lyd2VrClVIa0pLYTV6QWdNQkFBRUNnZ0VBRmw4QTJPZUVtS1FyNExVVUptM2dPWWx1Y2lsdFk3YlZrNVhVdmRzNHI4OEsKclJYWkN3eTBJVFQ1RzIrc3RBQWY1SUc1enl4VFJzRlhnT2wzdkJZTnlmWEl6dEZIQ210OElnY3dWL0lsWmNWSQpBcXRKemp3dnBLTXBvU2pVSzQ4b2Q0bjRZZi83OTU2THVSbGZvYk80eFRGdlZBMWZpUWsvZStHRjdZV2ltR2k0CnkrbXUzRzR2aXNvTGg4WnhIa3FPTEVWc3hoT3dNcGRXVEJvS21kUlk4emdsWDJNSUIwQmcvbnhWbzQwUktIOHIKcWg4NWZCeDJ2bGszbkxhRlhaekd4RXFjcjRuaTNxdlM5WENPUHhyUUFtaXR2QW5QVFh3eTFZalUvZjZRWUQrWQpOajlLUXJYdEt0N3BTTW50VnRqL1lTOTlMNkEwMGwvd0MvNUdjODMxZVFLQmdRRFJzZU0xUlplVVYvL1dVbTdiCkdsenRCV3BWQUgyaWdPMnRzemd4c25vc216bnFVSi95U3pnMjB0TFpoUVAyM1grTVBBdHIxcElhNmQzRjI0eVMKakczcytnWTEydjhiS0FnUk9SRGZmbjVIL1lwVEp2WjZQUlBYVVZmbnFhWDJQUjJDSzMrOHRMSnVHRXVQTXpJRApXbFZkQ0FVTGRONHBtRnhGWVd4Z2syY1R2d0tCZ1FEUHF2azFKcHlZcythMjlxMVU3SHVYK2hSTjNCOXdTb2RaCnp6cTFQQkUrYUlFMm4xNzIwU04zQXA2ZW8rQWFodWRyVE9YODFSVGg1WEVqUkY0dHZCdE5aZlFsN1o0MDN6WW4KVkV4UmJ6ZkVoN1lnS3pyc2JVd1lYNDRJaWJrZkI4STNsOXR1ald1VDZZMWhNcldiY0JIc1VQYXJoSXRFZkZteQpVRDlMN2s3Q1RRS0JnSEp2WnJRcXYxYjRVeWp1SVlzMnJ1RzJvOW14Zzk2TUI2bFVkZVZCSmtWempMNmZzem54CjdNS1dlUFMyRDN6SVVoUUFyS2IwR1JYUTdQTk9Kai9QblNuSEpGNTluZHgvRXkvNitZZE9LN0l6M2lvVXlFdmIKU3htbFRaaWlUMnk2MjRDdkptMmdHd1BVQkdBb3F6R0RPYlNrYk1SY3llVGZQZk9yQUE4UVFoOVhBb0dBSU9BWgpPWi9XTkpwdVVOSzJWL1prRG9ncGhMWHZTRENVUXRSNm44eFZrb0txeWdIcTM3bjJHbFlRMUY1dkVPUUFhTTB3CnI1andDRjd4VFRyNmlkVDRvWVVkWkkrOGR2UkxOMml4K0VaYUZzUEJRbEIxc0k0UStON1B0bXhQSVNseVJxakUKdFRpd0tpZFVHV29Vcy9uRzdKbFlvNGlGSDU5cjk3MmFkNlBQVmhVQ2dZRUFuZTdXMUNqTUl1dkt4V0U2bThrbQpFNjEwbTVVeVBrRngyTHIyRWdZY2lFanJRUHMyT2Z2QUl5bmpia0hEcVAvUmdYMFVIM2xod3FkY1lsSGQ2aE43Ck9QV3V0a3ZmTnEwbmxhSXJnMGdmOWkxSy8rWjlMNXdwV3dPMmFCdDhpY2JGcWp5dXZkSVl5RkhLZzFocU5nb3kKV3B2QkEvb242KzBqRkJZcDVQc1o4Y009Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K
+#   kind: Secret
+#   metadata:
+#     name: my-tls-secret
+#     namespace: nginx
+#   type: kubernetes.io/tls
+# kind: List
+# metadata:
+#   resourceVersion: ""
